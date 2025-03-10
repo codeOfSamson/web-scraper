@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "express": "^4.21.2",
+    "fs-extra": "^11.3.0",
+    "multer": "^1.4.5-lts.1",
+    "playwright": "^1.51.0",
+    "xml2js": "^0.6.2"
+  }
+}
