@@ -5,6 +5,8 @@ const path = require("path");
 const multer = require("multer");
 const csv = require("csv-parser");
 const { parseStringPromise } = require("xml2js");
+const  admZip = require("adm-zip");
+
 
 const app = express();
 const PORT = 3000;
@@ -56,10 +58,39 @@ app.get("/scrape-data", async (req, res) => {
     await buttons.nth(14).click()
     const download = await downloadPromise;
 
+
+// Save ZIP file
+const zipPath = path.join(DOWNLOAD_DIR, download.suggestedFilename());
+await download.saveAs(zipPath);
+console.log("Downloaded ZIP:", zipPath);
+
+// Extract ZIP file
+const zip = new admZip(zipPath);
+zip.extractAllTo(DOWNLOAD_DIR, true);
+console.log("ZIP extracted to:", DOWNLOAD_DIR);
+
+// Find the first CSV file inside
+const extractedFiles = fs.readdirSync(DOWNLOAD_DIR);
+const csvFile = extractedFiles.find(file => file.endsWith(".csv"));
+if (!csvFile) throw new Error("No CSV file found in ZIP");
+
+const csvPath = path.join(DOWNLOAD_DIR, csvFile);
+console.log("Found CSV:", csvPath);
+
+// Read CSV and send response
+const results = [];
+fs.createReadStream(csvPath)
+  .pipe(csv())
+  .on("data", (data) => results.push(data))
+  .on("end", () => res.json(results));
+
+
+
+
+    
     // 5. Save the file
     const filePath = path.join(DOWNLOAD_DIR, download.suggestedFilename());
     await download.saveAs(filePath);
-      console.log('fp', filePath)
     // 6. Parse and return the file data
     const fileData = await parseFile(filePath);
     res.json({ fileName: path.basename(filePath), data: fileData });
@@ -75,7 +106,6 @@ app.get("/scrape-data", async (req, res) => {
  * Parses CSV or XML files into JSON.
  */
 async function parseFile(filePath) {
-  console.log('123 ,', filePath)
   if (filePath.endsWith(".csv")) {
     return parseCSV(filePath);
   } else if (filePath.endsWith(".xml")) {
